@@ -23,7 +23,6 @@
   "7": "spend_hand"   // 手指伸展
 }
 ```
-![image](https://hackmd.io/_uploads/Skt03KrxZg.png)
 :::warning
 1. 每類錄「3 秒連續」→ 你會自動得到 90 幀（30FPS）
 2. 在 CSV 收集程式中，每 3 幀存一筆
