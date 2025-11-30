@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+
+# Virtual env
+.venv/
+env/
+
+# Dataset (不要上傳)
+old/
+
+# Video files
+*.mp4
+*.MP4
+*.avi
+*.mov
+
+# Zip or large binary
+*.zip
+*.tar
+*.gz
+
+# Model weights
+*.h5
+*.pt
+*.pth
+*.onnx
+*.pb
+*.tflite
+
+# Jetson Nano caches
+*.cache/
+*.npy
+*.npz
+
+# VSCode
+.vscode/
