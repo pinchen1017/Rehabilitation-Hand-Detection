@@ -1,0 +1,101 @@
+{
+  "config": {
+    "name": "config_1_high_lr",
+    "learning_rate": 0.001,
+    "batch_size": 32,
+    "dropout_rate": 0.4,
+    "neurons_layer1": 128,
+    "neurons_layer2": 64,
+    "use_standard_scaler": true,
+    "epochs": 150,
+    "test_size": 0.1,
+    "use_class_weight": true,
+    "use_early_stopping": true,
+    "early_stopping_patience": 20,
+    "use_lr_scheduler": true,
+    "confidence_threshold": 0.1,
+    "label0_low_confidence_threshold": 0.35,
+    "label0_medium_confidence_max": 0.95,
+    "label0_std_threshold": 0.07,
+    "label0_entropy_threshold": 0.12
+  },
+  "results": {
+    "test_loss": 0.011758256703615189,
+    "test_accuracy": 0.9978474974632263,
+    "training_time_seconds": 67.16369199752808,
+    "per_class_accuracy": {
+      "Gesture 1": 1.0,
+      "Gesture 2": 0.9913978494623656,
+      "Gesture 3": 1.0,
+      "Gesture 4": 0.9975669099756691,
+      "Gesture 5": 1.0,
+      "Gesture 6": 0.9953703703703703,
+      "Gesture 7": 1.0
+    },
+    "confusion_matrix": [
+      [
+        522,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        1,
+        461,
+        1,
+        0,
+        0,
+        2,
+        0
+      ],
+      [
+        0,
+        0,
+        489,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        0,
+        410,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        420,
+        0,
+        0
+      ],
+      [
+        2,
+        0,
+        0,
+        0,
+        0,
+        430,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        513
+      ]
+    ]
+  }
+}
