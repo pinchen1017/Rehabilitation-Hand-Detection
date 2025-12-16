@@ -1,0 +1,21 @@
+name: hand_recc_fixed
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - numpy
+  - pip
+  - pip:
+    # 核心套件 (不指定版本，讓 pip 自動找出最佳組合)
+    - tensorflow
+    - mediapipe
+    - opencv-python
+    - pillow
+    - matplotlib
+    - pandas
+    - scipy
+    - scikit-learn
+    # 如果你的程式碼有用到 jupyter，保留這些
+    - ipykernel
+    - notebook
