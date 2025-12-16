@@ -24,7 +24,6 @@ old/
 *.gz
 
 # Model weights
-*.h5
 *.pt
 *.pth
 *.onnx

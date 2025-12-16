@@ -58,6 +58,7 @@ hands = mp_hands.Hands(
 # 讀取 models 資料夾底下所有 h5 模型
 base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))  # 取得專案根目錄
 models_dir = os.path.join(base_dir, "models", "rehab_model_tuned")
+# models_dir = "C:\model" # 避免路徑有中文
 
 # 搜尋模型檔案
 model_files = glob.glob(os.path.join(models_dir, "*.h5"))
