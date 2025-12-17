@@ -18,7 +18,7 @@ from config import (
 @dataclass
 class HandResult:
     """手部偵測結果"""
-    landmarks: np.ndarray  # shape: (42,) - 21點 x (x, y)
+    landmarks: np.ndarray  # shape: (63,) - 21點 x (x, y, z)
     confidence: float
     raw_landmarks: List  # 原始 Mediapipe 關鍵點，用於視覺化繪製
 
@@ -43,7 +43,7 @@ class HandDetector:
 
     def detect(self, frame: np.ndarray) -> Optional[HandResult]:
         """
-        偵測手部並轉換為 42 維骨架向量
+        偵測手部並轉換為 63 維骨架向量
 
         Args:
             frame: BGR 格式的影像幀
@@ -63,10 +63,10 @@ class HandDetector:
         # 取得第一隻手的關鍵點
         hand_landmarks = results.multi_hand_landmarks[0]
 
-        # 轉換為 42 維向量 [x0, y0, x1, y1, ..., x20, y20]
+        # 轉換為 63 維向量 [x0, y0, z0, x1, y1, z1, ..., x20, y20, z20]
         landmarks_array = []
         for landmark in hand_landmarks.landmark:
-            landmarks_array.extend([landmark.x, landmark.y])
+            landmarks_array.extend([landmark.x, landmark.y, landmark.z])
 
         landmarks = np.array(landmarks_array, dtype=np.float32)
 

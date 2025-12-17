@@ -44,12 +44,12 @@ class GestureClassifier:
         執行手勢分類
 
         Args:
-            skeleton: 42 維骨架向量
+            skeleton: 63 維骨架向量 (21 點 x 3 座標)
 
         Returns:
             GesturePrediction 包含類別 ID、名稱與信心度
         """
-        # 調整輸入形狀為 (1, 42)
+        # 調整輸入形狀為 (1, 63)
         input_data = skeleton.reshape(1, -1)
 
         # 執行推論

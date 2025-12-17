@@ -59,7 +59,7 @@
 ### 實作任務
 
 - [x] T009 [US1] 實作 HandDetector 類別於 src/hand_detector.py（封裝 Mediapipe 手部偵測）
-- [x] T010 [US1] 實作 HandDetector.detect() 方法，將 21 個關鍵點轉換為 42 維向量
+- [x] T010 [US1] 實作 HandDetector.detect() 方法，將 21 個關鍵點轉換為 63 維向量
 - [x] T011 [US1] 實作 GestureClassifier 類別於 src/gesture_classifier.py（載入 Keras 模型）
 - [x] T012 [US1] 實作 GestureClassifier.predict() 方法，輸出手勢類別與信心度
 - [x] T013 [US1] 實作 GestureSmoother 類別於 src/gesture_classifier.py（移動平均平滑）

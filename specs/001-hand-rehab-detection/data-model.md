@@ -11,13 +11,13 @@
 
 | 欄位 | 型別 | 說明 |
 |------|------|------|
-| landmarks | np.ndarray (42,) | 正規化骨架向量：21 點 x (x, y) |
+| landmarks | np.ndarray (63,) | 正規化骨架向量：21 點 x (x, y, z) |
 | confidence | float | 偵測信心度 (0.0-1.0) |
 | raw_landmarks | List[Landmark] | 原始 Mediapipe 關鍵點，用於視覺化繪製 |
 
 **骨架向量格式**:
 ```
-[x0, y0, x1, y1, x2, y2, ..., x20, y20]
+[x0, y0, z0, x1, y1, z1, x2, y2, z2, ..., x20, y20, z20]
 ```
 
 其中點編號對應 Mediapipe Hand Landmarks:

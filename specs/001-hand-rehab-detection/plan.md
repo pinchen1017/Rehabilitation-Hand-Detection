@@ -21,7 +21,7 @@
 **目標平台**: Windows/macOS/Linux 桌面環境（需攝影機）
 **專案類型**: 單一專案
 **效能目標**: 手勢辨識延遲 <100ms，支援即時串流
-**約束**: 模型輸入為 42 維向量（21 點 x 2 座標），輸出 8 類手勢
+**約束**: 模型輸入為 63 維向量（21 點 x 3 座標），輸出 8 類手勢
 **規模**: 單一使用者桌面應用程式
 
 ## 憲章檢查
@@ -87,7 +87,7 @@ class HandDetector:
 
 @dataclass
 class HandResult:
-    landmarks: np.ndarray  # shape: (42,) - 21點 x (x, y)
+    landmarks: np.ndarray  # shape: (63,) - 21點 x (x, y, z)
     confidence: float
     raw_landmarks: List[Landmark]  # 原始 Mediapipe 結果，用於繪製
 ```
