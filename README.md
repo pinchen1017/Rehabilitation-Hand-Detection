@@ -11,14 +11,14 @@
 
 ## 環境需求
 
-- Python 3.10+
+- Python 3.10
 - 攝影機
 
 ## 安裝
 
 ```bash
 # 建立虛擬環境
-python -m venv venv
+py -3.10 -m venv venv
 
 # 啟動虛擬環境
 # Windows:

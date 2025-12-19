@@ -47,7 +47,7 @@ DEFAULT_MAX_HANDS = 1
 SMOOTHER_WINDOW_SIZE = 5
 
 # 模型路徑
-DEFAULT_MODEL_PATH = "models/rehab_action_classifier_64_5.h5"
+DEFAULT_MODEL_PATH = "models/rehab_action_classifier_clear_8_332301.h5"
 
 # UI 設定
 FONT_SCALE = 0.8
@@ -56,3 +56,54 @@ TEXT_COLOR = (255, 255, 255)  # 白色
 BG_COLOR = (0, 0, 0)  # 黑色
 LANDMARK_COLOR = (0, 255, 0)  # 綠色
 CONNECTION_COLOR = (255, 0, 0)  # 藍色
+
+# ===== 資料蒐集設定 =====
+DATA_RAW_DIR = "data/raw"
+DATA_PROCESSED_DIR = "data/processed"
+RAW_DATA_FILE = "gesture_data.csv"
+
+# 資料蒐集目標
+TARGET_SAMPLES_PER_CLASS = 1000
+NUM_CLASSES = 8
+
+# ===== 資料前處理設定 =====
+TRAIN_RATIO = 0.70
+VAL_RATIO = 0.15
+TEST_RATIO = 0.15
+RANDOM_SEED = 42
+
+# 資料增強設定
+AUGMENT_ROTATION_RANGE = 15  # 度
+AUGMENT_SCALE_RANGE = (0.9, 1.1)
+AUGMENT_TRANSLATION_RANGE = 0.1
+
+# ===== 模型訓練設定 =====
+TRAINING_LOGS_DIR = "training_logs"
+
+# 基礎模型設定
+BASIC_MODEL_CONFIG = {
+    "hidden_layers": [128, 64],
+    "dropout_rate": 0.3,
+    "learning_rate": 0.001,
+    "batch_size": 32,
+    "epochs": 50,
+    "early_stopping_patience": 10
+}
+
+# 增強模型設定
+ENHANCED_MODEL_CONFIG = {
+    "hidden_layers": [256, 128, 64],
+    "dropout_rate": 0.4,
+    "learning_rate": 0.001,
+    "batch_size": 32,
+    "epochs": 100,
+    "early_stopping_patience": 15,
+    "use_batch_norm": True,
+    "l2_regularization": 0.001,
+    "lr_reduce_factor": 0.5,
+    "lr_reduce_patience": 5
+}
+
+# 模型儲存路徑
+BASIC_MODEL_PATH = "models/basic_model.h5"
+ENHANCED_MODEL_PATH = "models/enhanced_model.h5"
