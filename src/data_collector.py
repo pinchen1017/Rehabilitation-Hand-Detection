@@ -11,8 +11,10 @@ import cv2
 import numpy as np
 import pandas as pd
 import mediapipe as mp
+from PIL import Image, ImageDraw, ImageFont
 
 from config import (
+    CHINESE_FONT_PATH,
     DATA_RAW_DIR,
     RAW_DATA_FILE,
     COLLECT_INTERVAL,
@@ -42,6 +44,7 @@ class DataCollector:
         Args:
             output_path: 輸出 CSV 檔案路徑，預設為 data/raw/gesture_data.csv
         """
+        
         # 重用既有的 HandDetector
         self.detector = HandDetector(
             max_hands=DEFAULT_MAX_HANDS,
@@ -167,19 +170,57 @@ class DataCollector:
         bg_color: tuple = (0, 0, 0),
         padding: int = 5
     ):
-        """在文字後方加上背景"""
-        (text_width, text_height), baseline = cv2.getTextSize(
-            text, self.font, font_scale, thickness
-        )
-        x, y = position
-        cv2.rectangle(
-            frame,
-            (x - padding, y - text_height - padding),
-            (x + text_width + padding, y + baseline + padding),
-            bg_color,
-            -1
-        )
-        cv2.putText(frame, text, position, self.font, font_scale, color, thickness)
+        """在文字後方加上背景（支援中文）"""
+
+        # 判斷是否包含中文
+        has_chinese = any('\u4e00' <= c <= '\u9fff' for c in text)
+
+        if has_chinese:
+            # OpenCV → PIL
+            img_pil = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+            draw = ImageDraw.Draw(img_pil)
+
+            # 字型大小依 FONT_SCALE 粗略轉換
+            font_size = max(int(font_scale * 30), 12)
+            font = ImageFont.truetype(CHINESE_FONT_PATH, font_size)
+
+            # 計算文字尺寸
+            text_bbox = draw.textbbox((0, 0), text, font=font)
+            text_w = text_bbox[2] - text_bbox[0]
+            text_h = text_bbox[3] - text_bbox[1]
+
+            x, y = position
+
+            # 背景矩形
+            draw.rectangle(
+                (x - padding, y - padding,
+                x + text_w + padding, y + text_h + padding),
+                fill=bg_color
+            )
+
+            # 繪製文字
+            draw.text((x, y), text, font=font, fill=color)
+
+            # PIL → OpenCV（回寫到原 frame）
+            frame[:, :, :] = cv2.cvtColor(
+                np.array(img_pil), cv2.COLOR_RGB2BGR
+            )
+
+        else:
+            # 原本 OpenCV 英文繪字
+            (text_width, text_height), baseline = cv2.getTextSize(
+                text, self.font, font_scale, thickness
+            )
+            x, y = position
+            cv2.rectangle(
+                frame,
+                (x - padding, y - text_height - padding),
+                (x + text_width + padding, y + baseline + padding),
+                bg_color,
+                -1
+            )
+            cv2.putText(frame, text, position,
+                        self.font, font_scale, color, thickness)
 
     def _render_ui(
         self,
@@ -223,7 +264,7 @@ class DataCollector:
         class_text = f"Class: {self.current_class} - {class_name}"
         class_text_zh = f"類別: {class_name_zh}"
         self._put_text_with_background(display_frame, class_text, (10, 30))
-        self._put_text_with_background(display_frame, class_text_zh, (10, 65), font_scale=0.6)
+        self._put_text_with_background(display_frame, class_text_zh, (10, 55), font_scale=0.6)
 
         # 右上角：各類別已蒐集數量
         y_offset = 30

@@ -57,6 +57,9 @@ BG_COLOR = (0, 0, 0)  # 黑色
 LANDMARK_COLOR = (0, 255, 0)  # 綠色
 CONNECTION_COLOR = (255, 0, 0)  # 藍色
 
+# Pillow 中文字型
+CHINESE_FONT_PATH = "msyh.ttc"
+
 # ===== 資料蒐集設定 =====
 DATA_RAW_DIR = "data/raw"
 DATA_PROCESSED_DIR = "data/processed"

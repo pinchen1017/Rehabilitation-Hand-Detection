@@ -16,7 +16,8 @@ from config import (
     TEXT_COLOR,
     LANDMARK_COLOR,
     CONNECTION_COLOR,
-    VALID_STRETCH_TYPES
+    VALID_STRETCH_TYPES,
+    CHINESE_FONT_PATH
 )
 from hand_detector import HandResult
 from gesture_classifier import GesturePrediction
@@ -31,8 +32,6 @@ class UIRenderer:
         self.mp_hands = mp.solutions.hands
         # 使用支援中文的字體（如果可用）
         self.font = cv2.FONT_HERSHEY_SIMPLEX
-        # Pillow 中文字型路徑，請確認 msyh.ttc 路徑正確
-        self.chinese_font_path = "msyh.ttc"
 
     def _put_text_with_background(
         self,
@@ -55,7 +54,7 @@ class UIRenderer:
 
             # 字型大小依 cv2 FONT_SCALE 調整
             font_size = max(int(font_scale * 30), 12)
-            font = ImageFont.truetype(self.chinese_font_path, font_size)
+            font = ImageFont.truetype(CHINESE_FONT_PATH, font_size)
 
             # 計算文字尺寸
             text_bbox = draw.textbbox((0, 0), text, font=font)
