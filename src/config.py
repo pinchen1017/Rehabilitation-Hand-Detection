@@ -47,7 +47,7 @@ DEFAULT_MAX_HANDS = 1
 SMOOTHER_WINDOW_SIZE = 5
 
 # 模型路徑
-DEFAULT_MODEL_PATH = "models/rehab_action_classifier_clear_8_332301.h5"
+DEFAULT_MODEL_PATH = "models/enhanced_model.h5"
 
 # UI 設定
 FONT_SCALE = 0.8
