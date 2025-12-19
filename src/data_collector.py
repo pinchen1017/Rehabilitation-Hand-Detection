@@ -40,6 +40,8 @@ class DataCollector:
         Args:
             output_path: 輸出 CSV 檔案路徑，預設為 data/raw/gesture_data.csv
         """
+        self.min_confidence = 0.15  # 可調整，低於此值不蒐集
+
         # 重用既有的 HandDetector
         self.detector = HandDetector(
             max_hands=DEFAULT_MAX_HANDS,
@@ -82,6 +84,11 @@ class DataCollector:
             sample[f"z{i}"] = float(landmarks[i * 3 + 2])
         self.samples.append(sample)
         self.counts_per_class[label] += 1
+        
+        # 檢查當前類別是否達標
+        if self.counts_per_class[self.current_class] >= TARGET_SAMPLES_PER_CLASS:
+            print(f"  類別 {self.current_class} 已達標 ({TARGET_SAMPLES_PER_CLASS} 筆)")
+            self.is_collecting = False
 
     def save_data(self) -> str:
         """
@@ -273,13 +280,15 @@ class DataCollector:
 
                 # 空白鍵蒐集資料
                 self.is_collecting = (key == ord(' '))
-                if self.is_collecting:
-                    if no_hand:
-                        # 無手部偵測時不蒐集
-                        pass
-                    else:
+                if self.is_collecting and not no_hand:
+                    # 計算平均 confidence
+                    avg_conf = np.mean([lm.visibility for lm in hand_result.raw_landmarks.landmark])
+                    
+                    if avg_conf >= self.min_confidence:
                         # 蒐集資料
                         self._collect_sample(hand_result.landmarks, self.current_class)
+                    else:
+                        print(f"  忽略低信心樣本: {avg_conf:.2f}")
 
                 # S 儲存資料
                 if key == ord('s') or key == ord('S'):

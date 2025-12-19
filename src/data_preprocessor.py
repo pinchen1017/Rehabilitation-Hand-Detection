@@ -390,6 +390,7 @@ def main():
         )
         preprocessor.process(
             augment=not args.no_augment,
+            # augment=False,  # 暫時硬編碼為不進行資料增強
             augment_multiplier=args.augment_multiplier
         )
     except FileNotFoundError as e:

@@ -7,6 +7,7 @@ from typing import Optional, Dict
 import cv2
 import numpy as np
 import mediapipe as mp
+from PIL import Image, ImageDraw, ImageFont
 
 from config import (
     GESTURE_NAMES_ZH,
@@ -30,6 +31,8 @@ class UIRenderer:
         self.mp_hands = mp.solutions.hands
         # 使用支援中文的字體（如果可用）
         self.font = cv2.FONT_HERSHEY_SIMPLEX
+        # Pillow 中文字型路徑，請確認 msyh.ttc 路徑正確
+        self.chinese_font_path = "msyh.ttc"
 
     def _put_text_with_background(
         self,
@@ -42,22 +45,52 @@ class UIRenderer:
         bg_color: tuple = (0, 0, 0),
         padding: int = 5
     ):
-        """在文字後方加上背景"""
-        (text_width, text_height), baseline = cv2.getTextSize(
-            text, self.font, font_scale, thickness
-        )
-        x, y = position
-        # 繪製背景矩形
-        cv2.rectangle(
-            frame,
-            (x - padding, y - text_height - padding),
-            (x + text_width + padding, y + baseline + padding),
-            bg_color,
-            -1
-        )
-        # 繪製文字
-        cv2.putText(frame, text, position, self.font, font_scale, color, thickness)
+        """在文字後方加上背景，支援中文"""
+        # 嘗試判斷是否有中文
+        if any('\u4e00' <= c <= '\u9fff' for c in text):
+            # 使用 Pillow 畫中文
+            # OpenCV frame → PIL Image
+            img_pil = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+            draw = ImageDraw.Draw(img_pil)
 
+            # 字型大小依 cv2 FONT_SCALE 調整
+            font_size = max(int(font_scale * 30), 12)
+            font = ImageFont.truetype(self.chinese_font_path, font_size)
+
+            # 計算文字尺寸
+            text_bbox = draw.textbbox((0, 0), text, font=font)
+            text_w = text_bbox[2] - text_bbox[0]
+            text_h = text_bbox[3] - text_bbox[1]
+            x, y = position
+
+            # 背景矩形
+            draw.rectangle(
+                (x - padding, y - padding, x + text_w + padding, y + text_h + padding),
+                fill=bg_color
+            )
+            # 文字
+            draw.text((x, y), text, font=font, fill=color)
+
+            # PIL → OpenCV
+            frame[:, :, :] = cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)
+        else:
+            # 原本 OpenCV 畫英文
+            (text_width, text_height), baseline = cv2.getTextSize(
+                text, self.font, font_scale, thickness
+            )
+            x, y = position
+            # 繪製背景矩形
+            cv2.rectangle(
+                frame,
+                (x - padding, y - text_height - padding),
+                (x + text_width + padding, y + baseline + padding),
+                bg_color,
+                -1
+            )
+            # 繪製文字
+            cv2.putText(frame, text, position, self.font, font_scale, color, thickness)
+
+    # 以下程式碼保持原樣，無需修改
     def _draw_hand_landmarks(self, frame: np.ndarray, hand_result: HandResult):
         """繪製手部骨架點與連線"""
         if hand_result.raw_landmarks:
@@ -90,13 +123,13 @@ class UIRenderer:
 
         # 顯示英文
         self._put_text_with_background(frame, text, (10, 30))
-        # 顯示中文（用英文代替，因為 OpenCV 預設不支援中文）
+        # 顯示中文
         self._put_text_with_background(frame, text_zh, (10, 65), font_scale=0.6)
 
         # 顯示信心度
         if gesture and not no_hand_detected:
             conf_text = f"Confidence: {gesture.confidence:.2f}"
-            self._put_text_with_background(frame, conf_text, (10, 95), font_scale=0.5)
+            self._put_text_with_background(frame, conf_text, (10, 110), font_scale=0.5)
 
     def _draw_total_count(self, frame: np.ndarray, stats: StretchStats):
         """繪製伸展總次數（右上角）"""
@@ -142,7 +175,7 @@ class UIRenderer:
             if start_gesture:
                 state_text += f" ({start_gesture})"
             self._put_text_with_background(
-                frame, state_text, (10, h - 60),
+                frame, state_text, (10, h - 80),
                 font_scale=0.5, padding=3
             )
 
@@ -150,7 +183,7 @@ class UIRenderer:
             bar_width = 200
             bar_height = 15
             bar_x = 10
-            bar_y = h - 50
+            bar_y = h - 55
 
             # 背景
             cv2.rectangle(
