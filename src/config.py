@@ -62,9 +62,6 @@ DATA_RAW_DIR = "data/raw"
 DATA_PROCESSED_DIR = "data/processed"
 RAW_DATA_FILE = "gesture_data.csv"
 
-# 最小置信度，低於此值不蒐集
-MIN_CONFIDENCE = 0.15
-
 # 資料蒐集目標
 TARGET_SAMPLES_PER_CLASS = 1000
 NUM_CLASSES = 8

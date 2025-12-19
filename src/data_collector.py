@@ -14,7 +14,6 @@ import mediapipe as mp
 from config import (
     DATA_RAW_DIR,
     RAW_DATA_FILE,
-    MIN_CONFIDENCE,
     TARGET_SAMPLES_PER_CLASS,
     NUM_CLASSES,
     GESTURE_NAMES,
@@ -41,8 +40,6 @@ class DataCollector:
         Args:
             output_path: 輸出 CSV 檔案路徑，預設為 data/raw/gesture_data.csv
         """
-        self.min_confidence = MIN_CONFIDENCE  # 低於此值不蒐集
-
         # 重用既有的 HandDetector
         self.detector = HandDetector(
             max_hands=DEFAULT_MAX_HANDS,
@@ -281,15 +278,13 @@ class DataCollector:
 
                 # 空白鍵蒐集資料
                 self.is_collecting = (key == ord(' '))
-                if self.is_collecting and not no_hand:
-                    # 計算平均 confidence
-                    avg_conf = np.mean([lm.visibility for lm in hand_result.raw_landmarks.landmark])
-                    
-                    if avg_conf >= self.min_confidence:
+                if self.is_collecting:
+                    if no_hand:
+                        # 無手部偵測時不蒐集
+                        pass
+                    else:
                         # 蒐集資料
                         self._collect_sample(hand_result.landmarks, self.current_class)
-                    else:
-                        print(f"  忽略低信心樣本: {avg_conf:.2f}")
 
                 # S 儲存資料
                 if key == ord('s') or key == ord('S'):
