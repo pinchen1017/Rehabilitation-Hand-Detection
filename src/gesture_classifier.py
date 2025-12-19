@@ -49,6 +49,8 @@ class GestureClassifier:
         Returns:
             GesturePrediction 包含類別 ID、名稱與信心度
         """
+        skeleton = self._normalize_relative_z(skeleton)  # relative-z 正規化
+        
         # 調整輸入形狀為 (1, 63)
         input_data = skeleton.reshape(1, -1)
 
@@ -64,6 +66,19 @@ class GestureClassifier:
             class_name=GESTURE_NAMES.get(class_id, "unknown"),
             confidence=confidence
         )
+    
+    def _normalize_relative_z(self, skeleton: np.ndarray) -> np.ndarray:
+        sk = skeleton.copy()
+        z = sk[2::3]
+        z0 = z[0]
+
+        z_rel = z - z0
+        std = np.std(z_rel)
+        if std > 1e-6:
+            z_rel = z_rel / std
+
+        sk[2::3] = z_rel
+        return sk
 
 
 class GestureSmoother:

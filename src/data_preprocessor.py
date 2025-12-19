@@ -105,11 +105,14 @@ class DataPreprocessor:
         print(f"  驗證完成: 保留 {len(df)} 筆，移除 {self.removed_count} 筆")
         return df.reset_index(drop=True)
 
-    def normalize(self, df: pd.DataFrame) -> pd.DataFrame:
+    def normalize_skeleton_relative_z(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        正規化座標
-
         MediaPipe 的 x, y 已經是 [0, 1]，只需處理 z 座標
+        
+        relative-z 正規化
+        手勢跟「絕對深度」無關
+        跟「關節彼此的相對深度」有關
+        以 wrist (0) 手腕為基準
 
         Args:
             df: 輸入 DataFrame
@@ -119,18 +122,21 @@ class DataPreprocessor:
         """
         df = df.copy()
         z_cols = [f"z{i}" for i in range(21)]
+        z_values = df[z_cols].values # (N, 21)
 
-        # 對 z 座標進行 min-max 正規化
-        z_values = df[z_cols].values
-        z_min = z_values.min()
-        z_max = z_values.max()
+        # wrist z
+        z0 = z_values[:, [0]]         # (N, 1)
 
-        if z_max - z_min > 0:
-            df[z_cols] = (z_values - z_min) / (z_max - z_min)
-        else:
-            df[z_cols] = 0.5  # 如果所有值相同，設為中間值
+        z_rel = z_values - z0
 
-        print(f"  正規化完成: z 座標範圍 [{z_min:.4f}, {z_max:.4f}] -> [0, 1]")
+        # per-sample scale
+        std = z_rel.std(axis=1, keepdims=True)
+        std[std < 1e-6] = 1.0
+
+        z_rel = z_rel / std
+        df[z_cols] = z_rel
+
+        print("  已套用 relative-z 正規化")
         return df
 
     def augment(self, df: pd.DataFrame, multiplier: int = 2) -> pd.DataFrame:
@@ -312,7 +318,7 @@ class DataPreprocessor:
 
         # 正規化
         print("\n[3/5] 正規化座標...")
-        df = self.normalize(df)
+        df = self.normalize_skeleton_relative_z(df)
 
         # 資料增強
         if augment:
