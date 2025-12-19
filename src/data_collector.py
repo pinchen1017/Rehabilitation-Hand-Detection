@@ -290,9 +290,16 @@ class DataCollector:
                 now = time.time()
                 # 依目前蒐集狀態進行資料蒐集
                 if self.collect_enabled and not no_hand:
-                    if now - self.last_collect_time >= COLLECT_INTERVAL:
-                        self._collect_sample(hand_result.landmarks, self.current_class)
-                        self.last_collect_time = now
+                    # 若目前類別尚未達到目標數量
+                    if self.counts_per_class[self.current_class] < TARGET_SAMPLES_PER_CLASS:
+                        if now - self.last_collect_time >= COLLECT_INTERVAL:
+                            self._collect_sample(hand_result.landmarks, self.current_class)
+                            self.last_collect_time = now
+                    else:
+                        # 已達標，自動停止蒐集
+                        self.collect_enabled = False
+                        self.is_collecting = False
+                        print(f"類別 {self.current_class} 已自動停止蒐集（達 {TARGET_SAMPLES_PER_CLASS} 筆）")
 
                 # S 儲存資料
                 if key == ord('s') or key == ord('S'):
