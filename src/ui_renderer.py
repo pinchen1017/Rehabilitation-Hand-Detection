@@ -90,7 +90,6 @@ class UIRenderer:
             # 繪製文字
             cv2.putText(frame, text, position, self.font, font_scale, color, thickness)
 
-    # 以下程式碼保持原樣，無需修改
     def _draw_hand_landmarks(self, frame: np.ndarray, hand_result: HandResult):
         """繪製手部骨架點與連線"""
         if hand_result.raw_landmarks:

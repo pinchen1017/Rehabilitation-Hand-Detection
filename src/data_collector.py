@@ -14,6 +14,7 @@ import mediapipe as mp
 from config import (
     DATA_RAW_DIR,
     RAW_DATA_FILE,
+    MIN_CONFIDENCE,
     TARGET_SAMPLES_PER_CLASS,
     NUM_CLASSES,
     GESTURE_NAMES,
@@ -40,7 +41,7 @@ class DataCollector:
         Args:
             output_path: 輸出 CSV 檔案路徑，預設為 data/raw/gesture_data.csv
         """
-        self.min_confidence = 0.15  # 可調整，低於此值不蒐集
+        self.min_confidence = MIN_CONFIDENCE  # 低於此值不蒐集
 
         # 重用既有的 HandDetector
         self.detector = HandDetector(
