@@ -48,7 +48,7 @@
 
 **目標**: 提供簡易 OpenCV 前端，蒐集 8 種手勢類別的手部特徵點資料
 
-**獨立測試**: 啟動 `python src/data_collector.py`，按數字鍵切換類別，做出手勢並按住空白鍵，確認資料已儲存至 `data/raw/gesture_data.csv`
+**獨立測試**: 啟動 `python src/data_collector.py`，按數字鍵切換類別，做出手勢並按下空白鍵切換至蒐集狀態，確認資料已儲存至 `data/raw/gesture_data.csv`
 
 ### 實作任務
 
@@ -57,7 +57,7 @@
 - [x] T009 [US1] 實作 DataCollector._collect_sample() 方法：將 landmarks 轉換為 dict 並加入 samples 列表
 - [x] T010 [US1] 實作 DataCollector.save_data() 方法：使用 pandas 儲存 CSV 檔案
 - [x] T011 [US1] 實作 DataCollector._render_ui() 方法：繪製類別選擇、統計數量、手部骨架、操作說明
-- [x] T012 [US1] 實作 DataCollector.run() 主迴圈：攝影機擷取、手部偵測、按鍵處理（0-7 切換、空白鍵蒐集、s 儲存、q 退出）
+- [x] T012 [US1] 實作 DataCollector.run() 主迴圈：攝影機擷取、手部偵測、按鍵處理（0-7 切換、空白鍵切換蒐集狀態、s 儲存、q 退出）
 - [x] T013 [US1] 實作無手部偵測時的警告顯示與資料拒絕邏輯
 - [x] T014 [US1] 實作蒐集結束時的摘要顯示（各類別數量統計）
 - [x] T015 [US1] 新增 src/data_collector.py 的 __main__ 入口點

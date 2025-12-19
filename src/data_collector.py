@@ -3,6 +3,7 @@
 提供簡易 OpenCV 前端，蒐集手勢特徵點資料
 """
 
+import time
 import os
 import sys
 from typing import Dict, List, Optional
@@ -14,6 +15,7 @@ import mediapipe as mp
 from config import (
     DATA_RAW_DIR,
     RAW_DATA_FILE,
+    COLLECT_INTERVAL,
     TARGET_SAMPLES_PER_CLASS,
     NUM_CLASSES,
     GESTURE_NAMES,
@@ -59,6 +61,8 @@ class DataCollector:
         self.samples: List[Dict] = []
         self.counts_per_class: Dict[int, int] = {i: 0 for i in range(NUM_CLASSES)}
         self.is_collecting: bool = False
+        self.collect_enabled: bool = False  # 切換式蒐集狀態
+        self.last_collect_time = 0
 
         # MediaPipe 繪圖工具
         self.mp_drawing = mp.solutions.drawing_utils
@@ -218,7 +222,7 @@ class DataCollector:
 
         # 底部：操作說明
         instructions = [
-            "0-7: Select class | SPACE: Collect | S: Save | Q: Quit"
+            "0-7: Select class | SPACE: Toggle Collect | S: Save | Q: Quit"
         ]
         for i, instruction in enumerate(instructions):
             self._put_text_with_background(
@@ -241,7 +245,7 @@ class DataCollector:
         print("=" * 50)
         print("操作說明:")
         print("  數字鍵 0-7: 切換目標類別")
-        print("  空白鍵 (按住): 蒐集資料")
+        print("  空白鍵 (按下切換蒐集狀態): 蒐集資料")
         print("  S: 儲存資料")
         print("  Q: 退出程式")
         print("=" * 50)
@@ -275,16 +279,20 @@ class DataCollector:
                 if ord('0') <= key <= ord('7'):
                     self.current_class = key - ord('0')
                     print(f"切換至類別 {self.current_class}: {GESTURE_NAMES[self.current_class]}")
+                
+                # 空白鍵：切換蒐集狀態（按一下）
+                if key == ord(' '):
+                    self.collect_enabled = not self.collect_enabled
+                    self.is_collecting = self.collect_enabled  # 保留給 UI 使用
+                    print("開始蒐集" if self.collect_enabled else "停止蒐集")
+                    time.sleep(0.2)  # 防止 key repeat 連續切換
 
-                # 空白鍵蒐集資料
-                self.is_collecting = (key == ord(' '))
-                if self.is_collecting:
-                    if no_hand:
-                        # 無手部偵測時不蒐集
-                        pass
-                    else:
-                        # 蒐集資料
+                now = time.time()
+                # 依目前蒐集狀態進行資料蒐集
+                if self.collect_enabled and not no_hand:
+                    if now - self.last_collect_time >= COLLECT_INTERVAL:
                         self._collect_sample(hand_result.landmarks, self.current_class)
+                        self.last_collect_time = now
 
                 # S 儲存資料
                 if key == ord('s') or key == ord('S'):

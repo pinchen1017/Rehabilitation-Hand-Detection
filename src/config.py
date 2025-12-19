@@ -62,8 +62,11 @@ DATA_RAW_DIR = "data/raw"
 DATA_PROCESSED_DIR = "data/processed"
 RAW_DATA_FILE = "gesture_data.csv"
 
+# 每 0.1 秒最多收一筆
+COLLECT_INTERVAL = 0.1
+
 # 資料蒐集目標
-TARGET_SAMPLES_PER_CLASS = 1000
+TARGET_SAMPLES_PER_CLASS = 10
 NUM_CLASSES = 8
 
 # ===== 資料前處理設定 =====
