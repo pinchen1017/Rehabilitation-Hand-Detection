@@ -70,6 +70,38 @@ class DataCollector:
 
         # UI 字體
         self.font = cv2.FONT_HERSHEY_SIMPLEX
+        
+        # 初始化既有 CSV 中的資料數量（若存在）
+        self._load_existing_counts()
+
+    def _load_existing_counts(self):
+        """
+        從既有 CSV 檔案讀取資料，初始化各類別已蒐集數量
+        """
+        if not os.path.exists(self.output_path):
+            # 尚未有資料檔，維持從 0 開始
+            return
+
+        try:
+            df = pd.read_csv(self.output_path)
+
+            if "label" not in df.columns:
+                print("警告：CSV 檔案中沒有 label 欄位，略過初始化")
+                return
+
+            # 依 label 統計各類別數量
+            label_counts = df["label"].value_counts().to_dict()
+
+            for label, count in label_counts.items():
+                if int(label) in self.counts_per_class:
+                    self.counts_per_class[int(label)] = int(count)
+
+            print("已從既有資料初始化各類別數量：")
+            for i in range(NUM_CLASSES):
+                print(f"  類別 {i}: {self.counts_per_class[i]}")
+
+        except Exception as e:
+            print(f"讀取既有資料時發生錯誤：{e}")
 
     def _collect_sample(self, landmarks: np.ndarray, label: int):
         """
