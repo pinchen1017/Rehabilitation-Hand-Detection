@@ -66,7 +66,7 @@ RAW_DATA_FILE = "gesture_data.csv"
 COLLECT_INTERVAL = 0.1
 
 # 資料蒐集目標
-TARGET_SAMPLES_PER_CLASS = 10
+TARGET_SAMPLES_PER_CLASS = 1000
 NUM_CLASSES = 8
 
 # ===== 資料前處理設定 =====

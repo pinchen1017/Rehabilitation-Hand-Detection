@@ -63,6 +63,7 @@ class DataCollector:
         self.is_collecting: bool = False
         self.collect_enabled: bool = False  # 切換式蒐集狀態
         self.last_collect_time = 0
+        self.session_total: int = 0  # 本次執行期間蒐集的總筆數
 
         # MediaPipe 繪圖工具
         self.mp_drawing = mp.solutions.drawing_utils
@@ -118,6 +119,7 @@ class DataCollector:
             sample[f"z{i}"] = float(landmarks[i * 3 + 2])
         self.samples.append(sample)
         self.counts_per_class[label] += 1
+        self.session_total += 1  # 累計本次執行的蒐集總數
         
         # 檢查當前類別是否達標
         if self.counts_per_class[self.current_class] >= TARGET_SAMPLES_PER_CLASS:
@@ -148,6 +150,10 @@ class DataCollector:
         df.to_csv(self.output_path, index=False)
         print(f"資料已儲存至: {self.output_path}")
         print(f"總樣本數: {len(df)}")
+        
+        # 儲存完成後，清空本次 session 的樣本
+        self.samples.clear()
+
         return self.output_path
 
     def _put_text_with_background(
@@ -263,7 +269,7 @@ class DataCollector:
             )
 
         # 顯示本次蒐集的總數
-        total_text = f"Total this session: {len(self.samples)}"
+        total_text = f"Total this session: {self.session_total}"
         self._put_text_with_background(
             display_frame, total_text, (10, 100), font_scale=0.5
         )
@@ -367,7 +373,7 @@ class DataCollector:
         print("\n" + "=" * 50)
         print("蒐集摘要")
         print("=" * 50)
-        print(f"本次蒐集總數: {len(self.samples)}")
+        print(f"本次蒐集總數: {self.session_total}")
         print("\n各類別數量:")
         for i in range(NUM_CLASSES):
             count = self.counts_per_class[i]
@@ -379,7 +385,7 @@ class DataCollector:
 
         # 提示未儲存的資料
         if self.samples:
-            print("\n警告：有未儲存的資料！")
+            print(f"\n警告：有 {len(self.samples)} 筆未儲存的資料！")
             save_input = input("是否儲存？(y/n): ")
             if save_input.lower() == 'y':
                 self.save_data()
