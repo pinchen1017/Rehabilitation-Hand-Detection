@@ -1,0 +1,60 @@
+模型測試報告（包含 label0）
+============================================================
+測試時間: 2025-12-12 16:14:42
+模型: rehab_model_tuned_12_12_2025_16_14_41
+配置名稱: config_1_high_lr
+測試集: c:\Users\N\Documents\GitHub\Rehabilitation-Hand-Detection\2_training\data\rehab_dataset_keyframes_testing_set.csv
+測試資料筆數: 5460
+信心度閾值: 0.1
+Label0 判斷參數:
+  - 低信心度閾值: 0.35
+  - 中等信心度上限: 0.95
+  - 標準差閾值: 0.07
+  - 熵閾值: 0.12
+
+整體準確率:
+  0.8266 (82.66%)
+
+各 label 準確率:
+  label0_true_count: 720
+  label0_predicted_count: 159
+  label0_correct: 56
+  label0_false_positive: 103
+  label0_false_negative: 664
+  label0_precision: 0.3522 (35.22%)
+  label0_recall: 0.0778 (7.78%)
+  label1: 1.0000 (100.00%)
+  label2: 0.8091 (80.91%)
+  label3: 1.0000 (100.00%)
+  label4: 1.0000 (100.00%)
+  label5: 0.9882 (98.82%)
+  label6: 0.7903 (79.03%)
+  label7: 1.0000 (100.00%)
+
+混淆矩陣（包含 label0）:
+行: 真實標籤，列: 預測標籤
+      label 0  label 1  label 2  label 3  label 4  label 5  label 6  label 7  
+label 0      56     121      83     271      49      77       2      61  
+label 1       0     720       0       0       0       0       0       0  
+label 2      64       0     534       0       1       0      61       0  
+label 3       0       0       0     690       0       0       0       0  
+label 4       0       0       0       0     690       0       0       0  
+label 5       6       0       0       0       0     504       0       0  
+label 6      33       0       9       0     109       0     569       0  
+label 7       0       0       0       0       0       0       0     750  
+
+分類報告（包含 label0）:
+              precision    recall  f1-score   support
+
+      label0       0.35      0.08      0.13       720
+      label1       0.86      1.00      0.92       720
+      label2       0.85      0.81      0.83       660
+      label3       0.72      1.00      0.84       690
+      label4       0.81      1.00      0.90       690
+      label5       0.87      0.99      0.92       510
+      label6       0.90      0.79      0.84       720
+      label7       0.92      1.00      0.96       750
+
+    accuracy                           0.83      5460
+   macro avg       0.79      0.83      0.79      5460
+weighted avg       0.78      0.83      0.79      5460
