@@ -1,6 +1,6 @@
 期末專題：印度人太有料了
 ===
-# 一、 使用規則
+## 一、 使用規則
 推送時從自己的 branch 進行推送，再到 github merge
 - branch_J：許鯨魚
 - branch_R：Risto
@@ -8,7 +8,7 @@
 - branch_T：礦採泥
 - branch_Z：013
 
-# 二、 復健手勢系統
+## 二、 復健手勢系統
 
 這是一個基於 **MediaPipe**、**深度神經網路 (DNN)** 與 **凸包幾何分析 (Convex Hull)** 的手部復健輔助系統。
 
@@ -16,14 +16,14 @@
 1.  **DNN 模型**：負責權威性的手勢辨識與復健次數計數，確保動態手勢的流暢性。
 2.  **幾何分析 (CV)**：作為輔助教練，即時分析手部物理特徵 (如指縫、實心度)，並在畫面上提示使用者修正動作。
 
-# 三、 主要功能
+## 三、 主要功能
 
 - **即時手部偵測**：使用 MediaPipe 高效偵測手部關鍵點。
 - **動態手勢計數**：內建狀態機 (State Machine)，可計算復健動作的完成次數 (如：張開 -> 握拳 -> 張開)。
 - **雙重驗證教練模式**：結合 DNN 的辨識結果與 CV 的幾何特徵，提供即時動作指導（如：「請握緊」、「請張開手指」）。
 - **完整訓練流程**：包含資料蒐集、前處理、模型訓練到即時推論的完整 Pipeline。
 
-# 四、 環境安裝
+## 四、 環境安裝
 
 請確保您的環境已安裝 Python (建議 3.8+)。
 
@@ -40,11 +40,11 @@
     > 若無 `requirements.txt`，主要依賴套件為：
     > `opencv-python`, `mediapipe`, `numpy`, `tensorflow`, `scikit-learn`, `pandas`, `ultralytics`
 
-# 五、 使用方法 (Workflow)
+## 五、 使用方法 (Workflow)
 
 本分支的所有核心程式碼皆位於 `4_dynanicHand` 資料夾內。請在專案根目錄下執行以下指令。
 
-## 1. 資料蒐集 (Data Collection)
+### 1. 資料蒐集 (Data Collection)
 開啟攝影機，蒐集手部關鍵點資料以建立客製化資料集。
 
 * **操作說明**：
@@ -57,13 +57,13 @@
 python 4_dynanicHand/src/data_collector.py
 ```
 
-## 2. 資料前處理 (Data Preprocessing)
+### 2. 資料前處理 (Data Preprocessing)
 將蒐集到的原始座標數據進行正規化、增強與分割 (Train/Val/Test)。
 ```bash
 python 4_dynanicHand/src/train_model.py
 ```
 
-## 3. 模型訓練 (Model Training)
+### 3. 模型訓練 (Model Training)
 使用處理後的資料訓練 DNN 模型，並轉換為 TFLite 格式。
 ```bash
 cd src
@@ -72,13 +72,13 @@ python model_trainer.py -m basic     # 僅訓練基礎模型
 python model_trainer.py -m enhanced  # 僅訓練增強模型
 ```
 
-## 4. 啟動主程式 (Real-time Detection)
+### 4. 啟動主程式 (Real-time Detection)
 啟動即時偵測系統 (教練模式)。這是最終整合的版本 (v29)，包含流暢計數與 CV 提示功能。
 ```bash
 python 4_dynanicHand/src/main_final_v29.py
 ```
 
-# 六、 專案結構
+## 六、 專案結構
 ```
 4_dynanicHand/
 ├── data/                  # 存放蒐集與處理後的資料 (.csv)
@@ -107,7 +107,7 @@ python 4_dynanicHand/src/main_final_v29.py
     └── plots/
 ```
 
-# 七、 手部類別定義
+## 七、 手部類別定義
 ID,類別名稱,描述,提示範例 (教練模式)
 0,Idle,手部放鬆 / 無效動作,-
 1,Hook,勾手 (爪狀),"""Bend Fingers!"""
@@ -118,7 +118,7 @@ ID,類別名稱,描述,提示範例 (教練模式)
 6,Fist,標準握拳 (拇指在內),"""Close Gaps!"""
 7,Spread Hand,五指張開 (伸展),"""Open Fingers!"""
 
-八、 備註與除錯
+## 八、 備註與除錯
 * 關於 YOLO 去背：系統整合了 YOLOv8-Seg 進行手部去背，以提高 Convex Hull 計算的抗干擾能力。程式初始化時需要載入 YOLO 模型，請稍候片刻。
 * 教練模式視窗：程式運行時會開啟兩個視窗。
 * Rehab System：主畫面，顯示計數與骨架。
