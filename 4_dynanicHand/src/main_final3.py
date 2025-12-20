@@ -73,18 +73,19 @@ class CVAnalyzer:
     # B-2: 凸包幾何驗證
     def analyze_hand_geometry(self, clean_frame, hand_result):
         """
-        計算 ROI (Padding 加大到 60)
+        計算幾何特徵 (Solidity, Circularity, Defects)
+        【強力修復版】：加入「關節點焊」，解決中指/無名指斷裂問題
         """
         h, w, _ = clean_frame.shape
         
-        # B-2-1 計算 ROI (Padding 加大到 60)
+        # B-2-1: 計算 ROI (Padding 維持 80，確保空間足夠)
         x_list = [int(lm * w) for lm in hand_result.landmarks[0::3]]
         y_list = [int(lm * h) for lm in hand_result.landmarks[1::3]]
         
         x_min, x_max = max(0, min(x_list)), min(w, max(x_list))
         y_min, y_max = max(0, min(y_list)), min(h, max(y_list))
         
-        padding = 60
+        padding = 80
         x_min = max(0, x_min - padding)
         x_max = min(w, x_max + padding)
         y_min = max(0, y_min - padding)
@@ -93,23 +94,63 @@ class CVAnalyzer:
         roi_img = clean_frame[y_min:y_max, x_min:x_max]
         if roi_img.size == 0: return None, 0, 0, 0, None
 
-        # B-2-2 ROI 內 RGB 轉 HSV
+        # B-2-2: ROI 內 HSV 偵測
         hsv = cv2.cvtColor(roi_img, cv2.COLOR_BGR2HSV)
         mask = cv2.inRange(hsv, self.lower_skin, self.upper_skin)
         
+        # === 【關鍵修復】 DNN 骨架強力回填 ===
+        # 取得 ROI 相對座標的 landmarks
+        roi_landmarks = []
+        for i in range(21):
+            lx = int(hand_result.landmarks[i*3] * w) - x_min
+            ly = int(hand_result.landmarks[i*3+1] * h) - y_min
+            roi_landmarks.append((lx, ly))
+            
+        finger_connections = [
+            (2, 3, 4),         # Thumb
+            (5, 6, 7, 8),      # Index
+            (9, 10, 11, 12),   # Middle (容易斷)
+            (13, 14, 15, 16),  # Ring (容易斷)
+            (17, 18, 19, 20),  # Pinky
+            (0, 5, 9, 13, 17)  # Palm
+        ]
+        
+        # 1. 先畫線 (骨頭)
+        for connection in finger_connections:
+            for i in range(len(connection) - 1):
+                pt1 = roi_landmarks[connection[i]]
+                pt2 = roi_landmarks[connection[i+1]]
+                if 0 <= pt1[0] < roi_img.shape[1] and 0 <= pt1[1] < roi_img.shape[0]:
+                    # 線條稍微細一點，避免手指黏在一起
+                    cv2.line(mask, pt1, pt2, (255), 12) 
+
+        # 2. 【新增】再畫圓 (關節點焊)
+        # 這能確保關節處絕對不會斷裂
+        for i, pt in enumerate(roi_landmarks):
+            # 略過手腕(0)，避免手腕處太大一坨
+            if i == 0: continue
+            
+            if 0 <= pt[0] < roi_img.shape[1] and 0 <= pt[1] < roi_img.shape[0]:
+                # 在每個關節點畫實心白圓 (半徑 8~10)
+                # 這樣就算手指中間有陰影，這個白圓也會把它接起來
+                cv2.circle(mask, pt, 9, (255), -1)
+
+        # B-2-3: 形態學運算 (強化連結)
+        # 使用 Close (閉運算) 來填補骨架跟皮膚之間的細縫
         kernel = np.ones((5, 5), np.uint8)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
         mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel) # 去噪
+        
         debug_mask = mask.copy()
 
-        # B-2-3 找輪廓
+        # B-3: 找輪廓
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if not contours: return None, 0, 0, 0, debug_mask
 
         cnt = max(contours, key=cv2.contourArea)
         if cv2.contourArea(cnt) < 1000: return None, 0, 0, 0, debug_mask
 
-        # B-2-4 計算特徵
+        # B-4: 計算特徵 (Convex Hull & Defects)
         hull_indices = cv2.convexHull(cnt, returnPoints=False)
         hull_points = cv2.convexHull(cnt, returnPoints=True)
         
@@ -122,7 +163,7 @@ class CVAnalyzer:
         if area_hull > 0: solidity = area_cnt / area_hull
         if perimeter > 0: circularity = (4 * math.pi * area_cnt) / (perimeter ** 2)
 
-        # B-2-5 指縫計數 (Defects)
+        # B-5: 指縫計數 (Defects)
         defects_count = 0
         if hull_indices is not None and len(hull_indices) > 3:
             try:
@@ -148,7 +189,7 @@ class CVAnalyzer:
             except:
                 pass
 
-        # B-2-6 轉回全域座標
+        # B-6: 轉回全域座標
         hull_global = hull_points.copy()
         for point in hull_global:
             point[0][0] += x_min
@@ -158,12 +199,11 @@ class CVAnalyzer:
 
 # 步驟 C： 主程式
 def main():
-    # Step 0: 初始化系統
     print("=" * 50)
-    print("手部復健偵測系統 (最終整合版)")
+    print("手部復健偵測系統 (v7 穩定版)")
     print("=" * 50)
 
-    # 0-1 初始化 DNN 模組
+    # 1. 初始化 DNN 模組
     try:
         classifier = GestureClassifier(MODEL_PATH)
         print("  [DNN] 模型載入成功!")
@@ -176,98 +216,93 @@ def main():
     tracker = StretchTracker()
     renderer = UIRenderer()
     
-    # 0-2 初始化 CV 分析器
+    # 2. 初始化 CV 分析器
     cv_analyzer = CVAnalyzer()
-    cap = cv2.VideoCapture(0)
 
-    # 0-3 初始化視窗
+    cap = cv2.VideoCapture(0)
     cv2.namedWindow("Rehab System", cv2.WINDOW_NORMAL)
     cv2.namedWindow("Debug: ROI Mask", cv2.WINDOW_NORMAL)
+
     print("\n系統啟動完成 - 按 'q' 退出, 'r' 重置")
 
     while True:
-        # Step 1: 讀取影像
+        # 3-1 讀取影像
         ret, frame = cap.read()
         if not ret:
             print("警告: 無法讀取攝影機畫面")
             break
 
-        # 1-1 水平翻轉（鏡像效果）
+        # 3-2 水平翻轉 (保持鏡像習慣)
         frame = cv2.flip(frame, 1)
 
-        # 1-2 YOLO 去背 (Hybrid 核心：將 frame 傳進去，得到去背後的 clean_frame，可以大幅提高準確度)
+        # 3-3 YOLO 去背 (取得 clean_frame 備用)
         has_person, clean_frame, _ = cv_analyzer.get_person_frame(frame)
         
-        # 1-3 準備 CV 線條的畫布 (使用原始 frame 複製)
         display_frame = frame.copy()
         
-        # 1-4 初始化變數
         hand_result = None
         gesture = None
         warning_msg = ""
         cv_feedback = ""
 
-        # 1-5 有人就顯示 YOLO 鎖定提示
         if has_person:
             cv2.putText(display_frame, "[YOLO] Person Locked", (10, 30), 
                         cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
 
-            # Step 2: DNN 分類手勢
-            # 注意：這裡我們傳入 clean_frame 給偵測器，效果最好
-            # 如果您堅持要傳原始 frame，改成 detector.detect(frame) 即可，但強烈建議用 clean_frame
-            hand_result = detector.detect(clean_frame)
+            # === 【關鍵修正】 ===
+            # 這裡改成傳入 'frame' (原圖)，而不是 'clean_frame'
+            # 這樣 MediaPipe 就能像最原始版本一樣精準抓到關節
+            hand_result = detector.detect(frame) 
 
             if hand_result is not None:
-                # 2-1 預測
+                # 預測與平滑
                 raw_prediction = classifier.predict(hand_result.landmarks)
-                # 2-2 平滑化 (得到 gesture 物件)
                 gesture = smoother.smooth(raw_prediction)
 
-                # 2-3 更新狀態機 (傳入 gesture 物件)
+                # 更新狀態機
                 stretch_record = tracker.update(gesture)
                 if stretch_record:
                     print(f"完成伸展! 類型: {stretch_record.stretch_type}, "
                           f"總次數: {tracker.get_stats().total_count}")
 
-                # 2-4 CV 幾何驗證 (平行處理)
-                # 利用剛剛抓到的 hand_result 進行 ROI 切割與幾何分析
+                # === CV 幾何驗證 ===
+                # 這裡繼續使用 'clean_frame' 做分析，避免背景干擾 Convex Hull
+                # 我們把從原圖抓到的座標 (hand_result)，套用到去背圖 (clean_frame) 上
                 hull, solidity, circularity, defects, debug_mask = cv_analyzer.analyze_hand_geometry(clean_frame, hand_result)
                 
-                # 2-5 顯示 Debug 視窗
+                # 顯示 Debug 視窗
                 if debug_mask is not None:
                     cv2.imshow("Debug: ROI Mask", debug_mask)
+                    cv2.putText(display_frame, f"Gaps:{defects}", (10, 250), 
+                               cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
                 else:
                     cv2.imshow("Debug: ROI Mask", np.zeros((200, 200), dtype=np.uint8))
 
-                # Step 3: Convex hull 雙重驗證
                 if hull is not None:
-                    # 3-1 畫出 Convex Hull
+                    # 畫出 Convex Hull
                     cv2.drawContours(display_frame, [hull], -1, (255, 0, 0), 2)
                     
-                    # 3-2 雙重驗證邏輯
+                    # 雙重驗證邏輯
                     gesture_int = gesture.class_id if hasattr(gesture, 'class_id') else 0
                     
                     closed_group = [1, 2, 3, 4, 5, 6]
                     open_group = [7]
 
-                    # 3-3 物理判定: 實心度高 OR 圓度高 OR 指縫少 -> 視為握緊
                     is_physically_gripped = (solidity > 0.70) or (circularity > 0.60) or (defects <= 1)
                     
-                    # 3-4.1 握緊警告邏輯
                     if (gesture_int in closed_group) and (defects >= 3):
                         warning_msg = "Warning: Loose Grip!"
                         cv_feedback = "Close Gaps"
                     
-                    # 3-4.2 放鬆警告邏輯
                     if (gesture_int in open_group) and (defects <= 1):
                         warning_msg = "Warning: Fingers Not Spread!"
                         cv_feedback = "Spread Fingers"
 
-                    # 3-5 繪製進度條 (加入指縫判斷變色)
+                    # 繪製進度條
                     bar_h = 200
                     progress = np.clip((solidity - 0.60) / (0.85 - 0.60), 0, 1)
                     
-                    if defects >= 3: # 如果有很多指縫，強制顯示綠色(放鬆)
+                    if defects >= 3: 
                         bar_color = (0, 255, 0)
                         progress = 0.0
                     else:
@@ -277,37 +312,29 @@ def main():
                     cv2.rectangle(display_frame, (50, 150 + bar_h - int(bar_h*progress)), 
                                  (80, 150+bar_h), bar_color, -1)
                     cv2.putText(display_frame, f"{int(progress*100)}%", (45, 145), cv2.FONT_HERSHEY_SIMPLEX, 0.6, bar_color, 2)
-                    
-                    # 3-6 顯示數據 Debug
-                    cv2.putText(display_frame, f"Gaps:{defects} Sol:{solidity:.2f}", (10, 250), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
 
             else:
-                # 3-7 沒偵測到手時，Debug視窗黑屏
                 cv2.imshow("Debug: ROI Mask", np.zeros((200, 200), dtype=np.uint8))
         else:
              cv2.putText(display_frame, "Searching for Person...", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
-        # Step 4: 渲染 UI (依照您的原始邏輯)
-        # 4-1 使用 renderer 渲染 UI (將 DNN 資訊與 CV 畫布結合)
+        # Step 4: 渲染 UI
         if has_person and hand_result and gesture is not None:
             final_frame = renderer.render(
-                display_frame, # 這裡傳入已經畫了 CV 線條的圖
+                display_frame,
                 hand_result,
-                gesture,       # 傳入 gesture 物件
+                gesture,
                 tracker.get_stats(),
                 tracker.get_state_info()
             )
-            # 4-2 加上雙重驗證警告文字
             if warning_msg:
                 cv2.putText(final_frame, warning_msg, (200, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 3)
                 cv2.putText(final_frame, cv_feedback, (200, 140), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
         else:
             final_frame = display_frame
 
-        # 4-3 顯示畫面
         cv2.imshow("Rehab System", final_frame)
 
-        # 4-4 處理按鍵
         key = cv2.waitKey(1) & 0xFF
         if key == ord('q'):
             print("\n使用者退出程式")
