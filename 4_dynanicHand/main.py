@@ -96,6 +96,8 @@ def main():
                 tracker.get_stats(),
                 tracker.get_state_info()
             )
+            if hand_result:
+                renderer.draw_convex_hull(display_frame, hand_result)
 
             # 顯示畫面
             cv2.imshow("Hand Rehab Detection", display_frame)

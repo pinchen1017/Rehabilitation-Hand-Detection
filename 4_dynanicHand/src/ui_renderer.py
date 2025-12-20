@@ -7,6 +7,7 @@ from typing import Optional, Dict
 import cv2
 import numpy as np
 import mediapipe as mp
+from PIL import Image, ImageDraw, ImageFont
 
 from config import (
     GESTURE_NAMES_ZH,
@@ -15,7 +16,8 @@ from config import (
     TEXT_COLOR,
     LANDMARK_COLOR,
     CONNECTION_COLOR,
-    VALID_STRETCH_TYPES
+    VALID_STRETCH_TYPES,
+    CHINESE_FONT_PATH
 )
 from hand_detector import HandResult
 from gesture_classifier import GesturePrediction
@@ -42,21 +44,50 @@ class UIRenderer:
         bg_color: tuple = (0, 0, 0),
         padding: int = 5
     ):
-        """在文字後方加上背景"""
-        (text_width, text_height), baseline = cv2.getTextSize(
-            text, self.font, font_scale, thickness
-        )
-        x, y = position
-        # 繪製背景矩形
-        cv2.rectangle(
-            frame,
-            (x - padding, y - text_height - padding),
-            (x + text_width + padding, y + baseline + padding),
-            bg_color,
-            -1
-        )
-        # 繪製文字
-        cv2.putText(frame, text, position, self.font, font_scale, color, thickness)
+        """在文字後方加上背景，支援中文"""
+        # 嘗試判斷是否有中文
+        if any('\u4e00' <= c <= '\u9fff' for c in text):
+            # 使用 Pillow 畫中文
+            # OpenCV frame → PIL Image
+            img_pil = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+            draw = ImageDraw.Draw(img_pil)
+
+            # 字型大小依 cv2 FONT_SCALE 調整
+            font_size = max(int(font_scale * 30), 12)
+            font = ImageFont.truetype(CHINESE_FONT_PATH, font_size)
+
+            # 計算文字尺寸
+            text_bbox = draw.textbbox((0, 0), text, font=font)
+            text_w = text_bbox[2] - text_bbox[0]
+            text_h = text_bbox[3] - text_bbox[1]
+            x, y = position
+
+            # 背景矩形
+            draw.rectangle(
+                (x - padding, y - padding, x + text_w + padding, y + text_h + padding),
+                fill=bg_color
+            )
+            # 文字
+            draw.text((x, y), text, font=font, fill=color)
+
+            # PIL → OpenCV
+            frame[:, :, :] = cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)
+        else:
+            # 原本 OpenCV 畫英文
+            (text_width, text_height), baseline = cv2.getTextSize(
+                text, self.font, font_scale, thickness
+            )
+            x, y = position
+            # 繪製背景矩形
+            cv2.rectangle(
+                frame,
+                (x - padding, y - text_height - padding),
+                (x + text_width + padding, y + baseline + padding),
+                bg_color,
+                -1
+            )
+            # 繪製文字
+            cv2.putText(frame, text, position, self.font, font_scale, color, thickness)
 
     def _draw_hand_landmarks(self, frame: np.ndarray, hand_result: HandResult):
         """繪製手部骨架點與連線"""
@@ -90,13 +121,13 @@ class UIRenderer:
 
         # 顯示英文
         self._put_text_with_background(frame, text, (10, 30))
-        # 顯示中文（用英文代替，因為 OpenCV 預設不支援中文）
+        # 顯示中文
         self._put_text_with_background(frame, text_zh, (10, 65), font_scale=0.6)
 
         # 顯示信心度
         if gesture and not no_hand_detected:
             conf_text = f"Confidence: {gesture.confidence:.2f}"
-            self._put_text_with_background(frame, conf_text, (10, 95), font_scale=0.5)
+            self._put_text_with_background(frame, conf_text, (10, 110), font_scale=0.5)
 
     def _draw_total_count(self, frame: np.ndarray, stats: StretchStats):
         """繪製伸展總次數（右上角）"""
@@ -142,7 +173,7 @@ class UIRenderer:
             if start_gesture:
                 state_text += f" ({start_gesture})"
             self._put_text_with_background(
-                frame, state_text, (10, h - 60),
+                frame, state_text, (10, h - 80),
                 font_scale=0.5, padding=3
             )
 
@@ -150,7 +181,7 @@ class UIRenderer:
             bar_width = 200
             bar_height = 15
             bar_x = 10
-            bar_y = h - 50
+            bar_y = h - 55
 
             # 背景
             cv2.rectangle(
@@ -222,107 +253,3 @@ class UIRenderer:
         self._draw_state_info(display_frame, state_info)
 
         return display_frame
-    
-    # 新增凸包繪製功能
-    def draw_convex_hull(self, image, hand_result):
-        """
-        [醫療分析版] 繪製凸包並計算復健指數
-        """
-        if not hand_result or hand_result.landmarks is None:
-            return image
-
-        h, w, c = image.shape
-        points = []
-
-        # 1. 取得 landmarks 並確保格式正確
-        lms = hand_result.landmarks
-        import numpy as np
-        
-        # 處理 NumPy 陣列格式
-        if isinstance(lms, np.ndarray) or isinstance(lms, list):
-            lms = np.array(lms)
-            if lms.ndim == 1:
-                lms = lms.reshape(-1, 3) # 轉回 (21, 3)
-            
-            # 轉換成像素座標
-            for lm in lms:
-                cx, cy = int(lm[0] * w), int(lm[1] * h)
-                points.append((cx, cy))
-                
-            # 取得關鍵點做為「正規化基準」
-            # 點 0: 手腕 (Wrist)
-            # 點 9: 中指根部 (Middle Finger MCP)
-            p0 = lms[0]
-            p9 = lms[9]
-            # 計算基準長度 (像素距離)
-            ref_len = np.linalg.norm(np.array([p0[0]*w, p0[1]*h]) - np.array([p9[0]*w, p9[1]*h]))
-            
-        else:
-            # 處理原始 MediaPipe 物件格式 (備用)
-            if hasattr(lms, 'landmark'): lms = lms.landmark
-            elif hasattr(lms, 'landmarks'): lms = lms.landmarks
-            
-            for lm in lms:
-                cx, cy = int(lm.x * w), int(lm.y * h)
-                points.append((cx, cy))
-            
-            p0 = lms[0]
-            p9 = lms[9]
-            ref_len = np.linalg.norm(np.array([p0.x*w, p0.y*h]) - np.array([p9.x*w, p9.y*h]))
-
-        if not points:
-            return image
-
-        # 2. 計算凸包 (Convex Hull)
-        points_np = np.array(points, dtype=np.int32)
-        hull = cv2.convexHull(points_np)
-        
-        # 3. 畫出黃色框框
-        cv2.drawContours(image, [hull], -1, (0, 255, 255), 2)
-        
-        # ==========================================
-        # 🏥 醫療分析核心 (Quantitative Analysis)
-        # ==========================================
-        
-        # A. 計算凸包面積 (Pixel Area)
-        hull_area = cv2.contourArea(hull)
-        
-        
-        # B. 計算正規化指數 (修正版)
-        # 試著把 2 改成 2.1, 2.2 或 2.3，直到你覺得遠近數值差不多為止
-        # 乘數也可以調整 (例如 * 10 改成 * 15)，讓數值落在好看的區間 (0~100)
-        
-        exponent = 2.15  # <---【在這裡微調】建議從 2.1 開始試
-        scale_factor = 15 # <---【在這裡微調】讓數字大小剛好落在 0~100 之間
-        
-        if ref_len > 0:
-            rehab_index = (hull_area / (ref_len ** exponent)) * scale_factor
-        else:
-            rehab_index = 0
-        
-
-        # C. 設定顯示顏色 (視覺化回饋)
-        # 假設: 指數 > 25 代表張很開 (綠色)，指數 < 15 代表握很緊 (紅色)
-        # 這些數值你可以自己測試微調
-        if rehab_index > 25:
-            status_color = (0, 255, 0)   # 綠色 (Good Stretch)
-            status_text = "Status: OPEN"
-        elif rehab_index < 15:
-            status_color = (0, 0, 255)   # 紅色 (Closed/Tight)
-            status_text = "Status: CLOSED"
-        else:
-            status_color = (0, 255, 255) # 黃色 (Normal)
-            status_text = "Status: RELAX"
-
-        # D. 顯示數據在畫面上
-        # 顯示指數數值
-        cv2.putText(image, f"Rehab Index: {rehab_index:.1f}", (20, 150), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 4) # 黑邊
-        cv2.putText(image, f"Rehab Index: {rehab_index:.1f}", (20, 150), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, status_color, 2)    # 彩字
-        
-        # 顯示面積 (Debug用，或是給老師看原始數據)
-        cv2.putText(image, f"Area: {int(hull_area)}", (20, 190), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 1)
-
-        return image

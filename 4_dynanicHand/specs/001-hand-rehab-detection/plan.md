@@ -263,7 +263,7 @@ class GestureSmoother:
 
 ```text
 opencv-python>=4.8.0
-mediapipe>=0.10.0
+mediapipe==0.10.21
 tensorflow>=2.13.0
 numpy>=1.24.0
 pytest>=7.0.0

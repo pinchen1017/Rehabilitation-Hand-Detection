@@ -1,0 +1,16 @@
+Classification Report
+============================================================
+                precision    recall  f1-score   support
+
+          idle     0.9137    0.9502    0.9316       301
+          hook     0.9800    0.9800    0.9800       300
+    angry_fist     0.9761    0.9533    0.9646       300
+thumb_flextion     0.9934    0.9967    0.9950       300
+ straight_fist     0.9607    0.9767    0.9686       300
+      the_duck     0.9507    0.9633    0.9570       300
+          fist     0.9527    0.8733    0.9113       300
+    spend_hand     0.9613    0.9933    0.9770       300
+
+      accuracy                         0.9608      2401
+     macro avg     0.9611    0.9609    0.9606      2401
+  weighted avg     0.9610    0.9608    0.9606      2401
