@@ -37,8 +37,7 @@ pip install -r requirements.txt
 ### 即時辨識模式
 
 ```bash
-cd src
-python main.py
+python src/main.py
 ```
 
 #### 快捷鍵
@@ -53,8 +52,7 @@ python main.py
 蒐集手勢特徵點資料以訓練模型。
 
 ```bash
-cd src
-python data_collector.py
+python src/data_collector.py
 ```
 
 #### 快捷鍵
@@ -70,8 +68,7 @@ python data_collector.py
 處理蒐集的原始資料，進行正規化與資料分割。
 
 ```bash
-cd src
-python data_preprocessor.py
+python src/data_preprocessor.py
 ```
 
 ### 模型訓練
@@ -79,10 +76,9 @@ python data_preprocessor.py
 訓練手勢分類模型。
 
 ```bash
-cd src
-python model_trainer.py              # 訓練基礎與增強模型
-python model_trainer.py -m basic     # 僅訓練基礎模型
-python model_trainer.py -m enhanced  # 僅訓練增強模型
+python src/model_trainer.py              # 訓練基礎與增強模型
+python src/model_trainer.py -m basic     # 僅訓練基礎模型
+python src/model_trainer.py -m enhanced  # 僅訓練增強模型
 ```
 
 ## 手勢類別
