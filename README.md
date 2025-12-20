@@ -53,13 +53,13 @@
     * `Q`：退出程式。
 
 ```bash
-python 4_dynanicHand/src/data_collector.py
+python 4_dynanicHand/src/1_data_collector.py
 ```
 
 ### 2. 資料前處理 (Data Preprocessing)
 將蒐集到的原始座標數據進行正規化、增強與分割 (Train/Val/Test)。
 ```bash
-python 4_dynanicHand/src/train_model.py
+python 4_dynanicHand/src/2_data_preprocessor.py
 ```
 
 ### 3. 模型訓練 (Model Training)
@@ -74,7 +74,7 @@ python model_trainer.py -m enhanced  # 僅訓練增強模型
 ### 4. 啟動主程式 (Real-time Detection)
 啟動即時偵測系統 (教練模式)。這是最終整合的版本 (v29)，包含流暢計數與 CV 提示功能。
 ```bash
-python 4_dynanicHand/src/main_final_v29.py
+python 4_dynanicHand/src/main.py
 ```
 
 ## 六、 專案結構
@@ -112,7 +112,7 @@ python 4_dynanicHand/src/main_final_v29.py
 | **0** | **Idle** | 手部放鬆 / 無效動作 | - |
 | **1** | **Hook** | 勾手 (爪狀) | "Bend Fingers!" |
 | **2** | **Angry Fist** | 握拳 (類似生氣的手勢) | "Grip Tighter!" |
-| **3** | **Thumb Flexion** | 拇指彎曲 / 四指併攏 | "Keep Long!" |
+| **3** | **Thumb Flexion** | 拇指彎曲 / 四指併攏 | "Four fingers together!" |
 | **4** | **Straight Hand** | 手掌伸直併攏 | "Flatten Hand!" |
 | **5** | **The Duck** | 鴨嘴手勢 | - |
 | **6** | **Fist** | 標準握拳 (拇指在內) | "Close Gaps!" |

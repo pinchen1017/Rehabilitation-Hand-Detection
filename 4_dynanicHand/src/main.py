@@ -258,7 +258,15 @@ def main():
                             hint_color = (0, 255, 255)
                     elif dnn_id == 3: # Thumb Flexion
                         if cv_group != "LONG":
-                            hint_msg = "Keep Long!"
+                            hint_msg = "Four fingers together!"
+                            hint_color = (0, 255, 255)
+                    elif dnn_id == 5: # The Duck
+                        if cv_group != "LONG":
+                            hint_msg = "Form a Beak!"
+                            hint_color = (0, 255, 255)
+                    elif dnn_id == 0: # Idle
+                        if cv_group != "IDLE":
+                            hint_msg = ""
                             hint_color = (0, 255, 255)
 
                     # 進度條 (視覺效果)
