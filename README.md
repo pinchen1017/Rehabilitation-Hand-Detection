@@ -107,15 +107,16 @@ python 4_dynanicHand/src/main_final_v29.py
 ```
 
 ## 七、 手部類別定義
-ID,類別名稱,描述,提示範例 (教練模式)
-0,Idle,手部放鬆 / 無效動作,-
-1,Hook,勾手 (爪狀),"""Bend Fingers!"""
-2,Angry Fist,握拳 (類似生氣的手勢),"""Grip Tighter!"""
-3,Thumb Flexion,拇指彎曲 / 四指併攏,"""Keep Long!"""
-4,Straight Hand,手掌伸直併攏,"""Flatten Hand!"""
-5,The Duck,鴨嘴手勢,-
-6,Fist,標準握拳 (拇指在內),"""Close Gaps!"""
-7,Spread Hand,五指張開 (伸展),"""Open Fingers!"""
+| ID | 類別名稱 (Class Name) | 描述 (Description) | 提示範例 (Coach Hint) |
+| :--- | :--- | :--- | :--- |
+| **0** | **Idle** | 手部放鬆 / 無效動作 | - |
+| **1** | **Hook** | 勾手 (爪狀) | "Bend Fingers!" |
+| **2** | **Angry Fist** | 握拳 (類似生氣的手勢) | "Grip Tighter!" |
+| **3** | **Thumb Flexion** | 拇指彎曲 / 四指併攏 | "Keep Long!" |
+| **4** | **Straight Hand** | 手掌伸直併攏 | "Flatten Hand!" |
+| **5** | **The Duck** | 鴨嘴手勢 | - |
+| **6** | **Fist** | 標準握拳 (拇指在內) | "Close Gaps!" |
+| **7** | **Spread Hand** | 五指張開 (伸展) | "Open Fingers!" |
 
 ## 八、 備註與除錯
 * 關於 YOLO 去背：系統整合了 YOLOv8-Seg 進行手部去背，以提高 Convex Hull 計算的抗干擾能力。程式初始化時需要載入 YOLO 模型，請稍候片刻。
