@@ -1,18 +1,17 @@
 """
-手部復健偵測系統 - v29 最終流暢修正版
-修正內容:
-1. 修復 NameError: 修正 analyze_hand_geometry 函式中迴圈變數名稱錯誤 (p -> point)。
-2. 維持 v28 邏輯:
-   - Tracker 使用即時 DNN 結果 (gesture)，確保動態手勢計數流暢。
-   - UI 提示使用 CV 結果 (Convex Hull)，在 Mask 視窗顯示動作建議。
+手部復健偵測系統 - v26 寬容提示版
+特色:
+1. 權重調整: 系統完全信任 DNN 模型，只要模型辨識出動作即計數 (不被 CV 阻擋)。
+2. CV 教練: Convex Hull 幾何分析僅作為「視覺提示」，顯示於 Debug 視窗，提醒動作是否標準。
+3. 參數維持: 使用 convex15-1 的瘦身骨架 (Line=10)，確保幾何計算準確。
 """
 
 import sys
 import cv2
 import numpy as np
 import os
-import math
 import time
+import math
 from ultralytics import YOLO
 
 # 引入原專案模組
@@ -28,8 +27,8 @@ YOLO_MODEL_PATH = os.path.join(BASE_DIR, "..", DEFAULT_YOLO_MODEL_PATH)
 
 class CVAnalyzer:
     """
-    核心分析器 (維持 convex16 的指縫優先邏輯參數)
-    線寬 10 / 半徑 6，確保指縫計算準確。
+    核心分析器 (來自 main_convex15-1.py)
+    維持線寬 10 / 半徑 6，這是計算幾何特徵的最佳參數。
     """
     def __init__(self):
         print("  [系統] 初始化 YOLOv8-Seg 與 CV 分析模組...")
@@ -63,8 +62,6 @@ class CVAnalyzer:
     def analyze_hand_geometry(self, clean_frame, hand_result):
         """計算幾何特徵"""
         h, w, _ = clean_frame.shape
-        
-        # ROI 切割
         x_list = [int(lm * w) for lm in hand_result.landmarks[0::3]]
         y_list = [int(lm * h) for lm in hand_result.landmarks[1::3]]
         x_min, x_max = max(0, min(x_list)), min(w, max(x_list))
@@ -93,6 +90,7 @@ class CVAnalyzer:
         palm_points = np.array([roi_landmarks[i] for i in palm_indices], dtype=np.int32)
         cv2.fillConvexPoly(mask_skeleton, palm_points, 255)
         
+        # 維持 Line=10, Circle=6 以確保指縫偵測準確
         finger_connections = [(2,3,4), (5,6,7,8), (9,10,11,12), (13,14,15,16), (17,18,19,20), (0,5,9,13,17)]
         for conn in finger_connections:
             for i in range(len(conn)-1):
@@ -147,7 +145,6 @@ class CVAnalyzer:
             except: pass
 
         hull_global = hull_points.copy()
-        # 【修正】這裡原本寫 for p in ... 但下面用 point，已修正為 for point in ...
         for point in hull_global:
             point[0][0] += x_min
             point[0][1] += y_min
@@ -156,8 +153,8 @@ class CVAnalyzer:
 
 def main():
     print("=" * 50)
-    print("手部復健偵測系統 - v29 流暢修正版")
-    print("特色: 恢復動態手勢流暢度，CV 提示僅供參考")
+    print("手部復健偵測系統 - v26 寬容提示版")
+    print("策略: DNN 優先計數，CV 負責提示 (顯示於 Debug Mask)")
     print("=" * 50)
 
     try:
@@ -168,8 +165,7 @@ def main():
         sys.exit(1)
 
     detector = HandDetector()
-    # Smoother 本身就有微小的 buffer，足夠過濾雜訊，不需要額外加長時間的 debounce
-    smoother = GestureSmoother(window_size=5) 
+    smoother = GestureSmoother()
     tracker = StretchTracker()
     renderer = UIRenderer()
     cv_analyzer = CVAnalyzer()
@@ -179,6 +175,12 @@ def main():
     cv2.namedWindow("Debug: ROI Mask", cv2.WINDOW_NORMAL)
 
     print("\n系統啟動完成 - 按 'q' 退出, 'r' 重置")
+
+    # 防抖動參數
+    stable_id = 0
+    state_change_start = None
+    STABILITY_THRESHOLD = 2.0
+    last_valid_gesture = None
 
     while True:
         ret, frame = cap.read()
@@ -191,39 +193,39 @@ def main():
         hand_result = None
         gesture = None
         
-        # 狀態變數初始化
+        # 狀態變數
         cv_group_name = "Wait..."
-        hint_msg = "Focusing..."
+        hint_msg = "Scanning..."
         hint_color = (200, 200, 200) 
+        
         debug_mask_display = np.zeros((300, 300, 3), dtype=np.uint8)
-        progress_bar_val = 0.0
 
         if has_person:
             cv2.putText(display_frame, "[YOLO] Locked", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
             hand_result = detector.detect(frame)
 
             if hand_result is not None:
-                # 1. DNN 預測 (權威結果)
+                # 1. DNN 預測 (這是權威結果)
                 raw_prediction = classifier.predict(hand_result.landmarks)
-                # 使用 Smoother 進行極短時間的平滑 (約 0.1~0.2秒)，保證 ID 不亂跳但反應夠快
                 gesture = smoother.smooth(raw_prediction)
                 dnn_id = gesture.class_id if hasattr(gesture, 'class_id') else 0
 
-                # 2. CV 幾何分析 (輔助分析)
+                # 2. CV 幾何驗證 (這是輔助提示)
                 hull, solidity, circularity, defects, aspect_ratio, debug_mask = cv_analyzer.analyze_hand_geometry(clean_frame, hand_result)
                 
-                # 處理 Mask 顯示
+                # 處理 Mask 顯示 (轉彩色)
                 if debug_mask is not None:
                     mask_bgr = cv2.cvtColor(debug_mask, cv2.COLOR_GRAY2BGR)
                     debug_mask_display = cv2.resize(mask_bgr, (300, 300))
 
                 if hull is not None:
+                    # 畫出凸包 (藍色線條，不影響計數)
                     cv2.drawContours(display_frame, [hull], -1, (255, 0, 0), 2)
 
-                    # === A. 幾何分類 (依據 convex16 指縫優先規則) ===
+                    # === A. 幾何分類 (依據 convex15-1 規則) ===
                     cv_group = "UNKNOWN"
                     if defects >= 4: cv_group = "OPEN"
-                    elif defects >= 3: cv_group = "IDLE"
+                    elif defects >= 3: cv_group = "IDLE_PARTIAL"
                     elif defects == 0 and 0.9 < aspect_ratio < 1.34 and solidity > 0.82: cv_group = "ROUND"
                     elif defects == 0 or (aspect_ratio > 1.35 and solidity > 0.68): cv_group = "LONG"
                     elif aspect_ratio < 1.0 and solidity > 0.65: cv_group = "WIDE"
@@ -232,71 +234,101 @@ def main():
                     
                     cv_group_name = cv_group
 
-                    # === B. 教練提示邏輯 (不影響計數) ===
-                    # 邏輯: 你的 ID 是對的，但我建議你姿勢可以更好
-                    
-                    hint_msg = "Perfect!"
-                    hint_color = (0, 255, 0) # Green
+                    # === B. 比較 DNN 與 CV (決定提示訊息) ===
+                    is_match = False
+                    if dnn_id == 7 and cv_group == "OPEN": is_match = True
+                    elif dnn_id == 3 and cv_group == "LONG": is_match = True
+                    elif dnn_id == 5 and cv_group in ["LONG", "C-SHAPE", "ROUND"]: is_match = True
+                    elif dnn_id in [2, 6] and cv_group == "ROUND": is_match = True
+                    elif dnn_id == 4 and cv_group == "WIDE": is_match = True
+                    elif dnn_id == 1 and cv_group == "C-SHAPE": is_match = True
 
-                    # 根據 ID 檢查形狀特徵
-                    if dnn_id == 7: # Spread
-                        if cv_group != "OPEN":
-                            hint_msg = "Open Fingers!"
-                            hint_color = (0, 255, 255)
-                    elif dnn_id in [2, 6]: # Fist
-                        if cv_group != "ROUND":
-                            if defects > 0: hint_msg = "Close Gaps!"
-                            else: hint_msg = "Grip Tighter!"
-                            hint_color = (0, 255, 255)
-                    elif dnn_id == 4: # Straight
-                        if cv_group != "WIDE":
-                            hint_msg = "Flatten Hand!"
-                            hint_color = (0, 255, 255)
-                    elif dnn_id == 1: # Hook
-                        if cv_group != "C-SHAPE":
-                            hint_msg = "Bend Fingers!"
-                            hint_color = (0, 255, 255)
-                    elif dnn_id == 3: # Thumb Flexion
-                        if cv_group != "LONG":
-                            hint_msg = "Keep Long!"
-                            hint_color = (0, 255, 255)
+                    if is_match:
+                        hint_msg = "Perfect!"
+                        hint_color = (0, 255, 0) # Green
+                    else:
+                        # 這裡只是提示，不影響 instant_id
+                        hint_msg = f"Try: {cv_group}"
+                        hint_color = (0, 255, 255) # Yellow
+
+                    # === C. 決定輸出 (DNN 為準) ===
+                    instant_id = dnn_id
+                    last_valid_gesture = gesture 
 
                     # 進度條 (視覺效果)
+                    progress_bar_val = 0
                     if dnn_id == 7: progress_bar_val = np.clip((0.75 - solidity) / (0.75 - 0.55), 0, 1)
                     elif dnn_id in [3, 5]: progress_bar_val = np.clip((aspect_ratio - 1.3) / (1.6 - 1.3), 0, 1)
                     else: progress_bar_val = np.clip((solidity - 0.60) / (0.85 - 0.60), 0, 1)
 
-                # === C. 更新 Tracker (移除人為延遲) ===
-                # 直接使用經過 Smooth 的 gesture 更新 Tracker
-                # Tracker 內部有狀態機邏輯，可以處理動態變化，不需要外部 Debounce 阻擋
-                if gesture:
-                    stretch_record = tracker.update(gesture)
-                    if stretch_record:
-                        print(f"完成伸展! {stretch_record.stretch_type} (Total: {tracker.get_stats().total_count})")
-
+                else:
+                    # CV 失敗但 DNN 成功，依然信任 DNN
+                    instant_id = dnn_id
             else:
-                pass # 沒偵測到手
+                instant_id = 0
         else:
              cv2.putText(display_frame, "Searching...", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+             instant_id = 0
 
-        # === D. 繪製 UI ===
-        # 1. Debug Mask 視窗 (顯示詳細提示)
+        # === D. 防抖動緩衝 ===
+        current_time = time.time()
+        final_id_to_tracker = 0
+        
+        if instant_id == stable_id:
+            state_change_start = None 
+            final_id_to_tracker = stable_id
+        else:
+            if state_change_start is None: state_change_start = current_time
+            elapsed = current_time - state_change_start
+            
+            if elapsed < STABILITY_THRESHOLD:
+                final_id_to_tracker = stable_id 
+            else:
+                stable_id = instant_id 
+                final_id_to_tracker = stable_id
+                state_change_start = None
+
+        # === E. 更新 Tracker ===
+        gesture_to_send = None
+        if final_id_to_tracker != 0:
+            if last_valid_gesture:
+                gesture_to_send = last_valid_gesture
+                gesture_to_send.class_id = final_id_to_tracker
+            elif gesture:
+                gesture_to_send = gesture
+                gesture_to_send.class_id = final_id_to_tracker
+        else:
+            if gesture:
+                gesture.class_id = 0
+                gesture_to_send = gesture
+        
+        if gesture_to_send:
+            stretch_record = tracker.update(gesture_to_send)
+            if stretch_record:
+                 print(f"完成伸展! {stretch_record.stretch_type}")
+
+        # === F. 繪製 UI (集中在 Mask 視窗) ===
+        # 1. 顯示 CV 判斷結果 (左上角)
         cv2.putText(debug_mask_display, f"CV: {cv_group_name}", (10, 30), 
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
+        # 2. 顯示 提示訊息
         cv2.putText(debug_mask_display, f"Hint: {hint_msg}", (10, 60), 
                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, hint_color, 2)
         
+        # 3. 顯示詳細數據 (除錯用)
         if has_person and hand_result and hull is not None:
-             cv2.putText(debug_mask_display, f"D:{defects} S:{solidity:.2f}", (10, 90), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (150, 150, 150), 1)
+             cv2.putText(debug_mask_display, f"D:{defects} AR:{aspect_ratio:.2f}", (10, 90), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 200), 1)
 
-        # 2. 主畫面 (只顯示進度條與 Tracker 結果)
-        bar_color = (0, 255, 0)
-        cv2.rectangle(display_frame, (50, 150), (80, 350), (255, 255, 255), 2)
-        cv2.rectangle(display_frame, (50, 350 - int(200*progress_bar_val)), (80, 350), bar_color, -1)
+        # 4. 主畫面進度條
+        if stable_id != 0:
+            bar_color = (0, 255, 0)
+            cv2.rectangle(display_frame, (50, 150), (80, 350), (255, 255, 255), 2)
+            cv2.rectangle(display_frame, (50, 350 - int(200*progress_bar_val)), (80, 350), bar_color, -1)
 
         if has_person and hand_result and gesture:
-            final_frame = renderer.render(display_frame, hand_result, gesture, tracker.get_stats(), tracker.get_state_info())
+            render_gesture = gesture_to_send if gesture_to_send else gesture
+            final_frame = renderer.render(display_frame, hand_result, render_gesture, tracker.get_stats(), tracker.get_state_info())
         else:
             final_frame = display_frame
 
@@ -308,6 +340,7 @@ def main():
         elif key == ord('r'):
             tracker.reset()
             smoother.reset()
+            stable_id = 0
 
     cap.release()
     cv2.destroyAllWindows()

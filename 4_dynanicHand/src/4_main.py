@@ -161,7 +161,7 @@ class CVAnalyzer:
             point[0][0] += x_min
             point[0][1] += y_min
 
-        return hull_global, solidity, circularity, defects_count, debug_mask
+        return hull_global, solidity, circularity, defects_count, aspect_ratio, debug_mask
 
 # 步驟 C: 主程式
 def main():
@@ -217,24 +217,28 @@ def main():
                 if defects >= 4:
                     group_name = "Group: OPEN (5 Fingers)"
                     color = (0, 255, 0)
+
+                elif defects >= 3:
+                    group_name = "Group: IDLE"
+                
                 # 4-4.2 高實心握拳組 (High Solidity Round)
                 # 專門抓 Image 1 (Sol 0.88, AR 1.44)
                 # 如果沒被上面抓走 (代表 AR < 1.60)，且實心度極高 (>0.82)，判定為 Round
-                elif solidity > 0.82:
+                elif defects == 0 and 0.9 < ar < 1.34 and solidity > 0.82:
                     group_name = "Group: ROUND (Fist/Angry)"
                     color = (0, 0, 255) # Red
 
-                # 4-4.3 寬扁組 (Straight Hand)
+                # 4-4.3 一般長條組 (Intermediate Long)
+                # 處理 AR 介於 1.35 ~ 1.60 且 Solidity < 0.82 的 Duck/Thumb
+                elif defects == 0 or (ar > 1.35 and solidity > 0.68):
+                    group_name = "Group: LONG (Thumb/Duck)"
+                    color = (255, 255, 0)
+
+                # 4-4.4 寬扁組 (Straight Hand)
                 # 維持 AR < 1.0 的嚴格限制
                 elif ar < 1.0 and solidity > 0.65:
                     group_name = "Group: WIDE (Straight)"
                     color = (0, 255, 255) # Yellow
-
-                # 4-4.4 一般長條組 (Intermediate Long)
-                # 處理 AR 介於 1.35 ~ 1.60 且 Solidity < 0.82 的 Duck/Thumb
-                elif ar > 1.35 and solidity > 0.68:
-                    group_name = "Group: LONG (Thumb/Duck)"
-                    color = (255, 255, 0)
 
                 # 4-4.5 Hook (C-Shape)
                 # 剩下的中間地帶 (0.65 < Sol <= 0.82)
@@ -244,7 +248,7 @@ def main():
                 
                 # 4-4.6 其他情況
                 else:
-                    group_name = "IDLE / UNKNOWN"
+                    group_name = "IDLE"
 
                 # 4-5 顯示數據
                 info_text = [
