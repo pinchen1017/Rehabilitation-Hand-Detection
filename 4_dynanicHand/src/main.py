@@ -266,8 +266,8 @@ def main():
                             hint_color = (0, 255, 255)
                     elif dnn_id == 0: # Idle
                         if cv_group != "IDLE":
-                            hint_msg = ""
-                            hint_color = (0, 255, 255)
+                            hint_msg = "Relax!"
+                            hint_color = (0, 255, 0)
 
                     # 進度條 (視覺效果)
                     if dnn_id == 7: progress_bar_val = np.clip((0.75 - solidity) / (0.75 - 0.55), 0, 1)

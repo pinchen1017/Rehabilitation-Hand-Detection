@@ -114,7 +114,7 @@ python 4_dynanicHand/src/main.py
 | **2** | **Angry Fist** | 握拳 (類似生氣的手勢) | "Grip Tighter!" |
 | **3** | **Thumb Flexion** | 拇指彎曲 / 四指併攏 | "Four fingers together!" |
 | **4** | **Straight Hand** | 手掌伸直併攏 | "Flatten Hand!" |
-| **5** | **The Duck** | 鴨嘴手勢 | - |
+| **5** | **The Duck** | 鴨嘴手勢 | "Form a Beak!" |
 | **6** | **Fist** | 標準握拳 (拇指在內) | "Close Gaps!" |
 | **7** | **Spread Hand** | 五指張開 (伸展) | "Open Fingers!" |
 
